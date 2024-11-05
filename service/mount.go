@@ -505,7 +505,7 @@ func handlePrivFSMount(
 	switch accMode.GetMode() {
 	case csi.VolumeCapability_AccessMode_SINGLE_NODE_READER_ONLY, csi.VolumeCapability_AccessMode_MULTI_NODE_READER_ONLY:
 		mntFlags = append(mntFlags, "ro")
-		if err := gofsutil.Mount(ctx, sysDevice.FullPath, privTgt, fs, mntFlags...); err != nil {
+		if err := gofsutil.FormatAndMount(ctx, sysDevice.FullPath, privTgt, fs, mntFlags...); err != nil {
 			return status.Errorf(codes.Internal,
 				"error performing private mount: %s",
 				err.Error())
