@@ -1,0 +1,9 @@
+name: Upgrade Dell Client Libraries to Pre-release
+on:  # yamllint disable-line rule:truthy
+  workflow_dispatch:
+
+jobs:
+  dependency-update:
+    name: Dell Client Pre-release Upgrade
+    uses: dell/common-github-actions/.github/workflows/update-dependencies-to-commits.yml@goclient-dependencies
+  
