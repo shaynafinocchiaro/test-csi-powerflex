@@ -107,16 +107,16 @@ var Log = logrus.New()
 
 // ArrayConnectionData contains data required to connect to array
 type ArrayConnectionData struct {
-	SystemID                  string              `json:"systemID"`
-	Username                  string              `json:"username"`
-	Password                  string              `json:"password"`
-	Endpoint                  string              `json:"endpoint"`
-	SkipCertificateValidation bool                `json:"skipCertificateValidation,omitempty"`
-	Insecure                  bool                `json:"insecure,omitempty"`
-	IsDefault                 bool                `json:"isDefault,omitempty"`
-	AllSystemNames            string              `json:"allSystemNames"`
-	NasName                   string              `json:"nasName"`
-	ZoneMapping               []map[string]string `json:"zoneMapping"`
+	SystemID                  string `json:"systemID"`
+	Username                  string `json:"username"`
+	Password                  string `json:"password"`
+	Endpoint                  string `json:"endpoint"`
+	SkipCertificateValidation bool   `json:"skipCertificateValidation,omitempty"`
+	Insecure                  bool   `json:"insecure,omitempty"`
+	IsDefault                 bool   `json:"isDefault,omitempty"`
+	AllSystemNames            string `json:"allSystemNames"`
+	NasName                   string `json:"nasName"`
+	Zone                      string `json:"zone"`
 }
 
 // Manifest is the SP's manifest.
