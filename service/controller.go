@@ -157,8 +157,7 @@ var interestingParameters = [...]string{0: "FsType", 1: KeyMkfsFormatOption, 2: 
 
 func (s *service) configureAccessZones(zoneTargetMap ZoneTargetMap) {
 	for _, array := range s.opts.arrays {
-		// TODO: how does this unmarshal if 'zone' parameter is not given?
-		if array.AccessZone.Name == "" {
+		if array.AccessZone == nil || array.AccessZone.Name == "" {
 			continue
 		}
 
