@@ -155,6 +155,42 @@ const (
 
 var interestingParameters = [...]string{0: "FsType", 1: KeyMkfsFormatOption, 2: KeyBandwidthLimitInKbps, 3: KeyIopsLimit}
 
+func (s *service) configureAccessZones(zoneTargetMap ZoneTargetMap) {
+	for _, array := range s.opts.arrays {
+		// TODO: how does this unmarshal if 'zone' parameter is not given?
+		if array.AccessZone.Name == "" {
+			continue
+		}
+
+		zoneTargetMap[array.AccessZone.Name] = array.AccessZone.Domains
+		break
+	}
+
+	Log.Infof("[CreateVolume] Zone Target Map %+v", zoneTargetMap)
+}
+
+func (s *service) setSystemID(ctx context.Context, params map[string]string, zoneTargetMap ZoneTargetMap) (systemID string, err error) {
+	// handle case for secret without access zones
+	if len(zoneTargetMap) == 0 {
+		sid, err := s.getSystemIDFromParameters(params)
+		if err != nil {
+			return "", err
+		}
+
+		systemID = sid
+	} else {
+		systemID = s.opts.defaultSystemID
+	}
+
+	if systemID != "" {
+		if err := s.requireProbe(ctx, systemID); err != nil {
+			return "", err
+		}
+	}
+
+	return systemID, nil
+}
+
 func (s *service) CreateVolume(
 	ctx context.Context,
 	req *csi.CreateVolumeRequest) (
@@ -165,33 +201,11 @@ func (s *service) CreateVolume(
 	var err error
 
 	// This is a map of zone to the arrayID and pool identifier
-	zoneTargetMap := make(map[string]string)
-	for _, array := range s.opts.arrays {
-		if array.Zone == "" {
-			continue
-		}
-
-		parts := strings.Split(array.Zone, "=")
-		zoneTargetMap[parts[0]] = parts[1]
-		systemID = s.opts.defaultSystemID
-		break
-	}
-
-	Log.Infof("[CreateVolume] Zone Target Map %+v", zoneTargetMap)
-
-	if len(zoneTargetMap) == 0 {
-		sid, err := s.getSystemIDFromParameters(params)
-		if err != nil {
-			return nil, err
-		}
-
-		systemID = sid
-	}
-
-	if systemID != "" {
-		if err := s.requireProbe(ctx, systemID); err != nil {
-			return nil, err
-		}
+	zoneTargetMap := make(ZoneTargetMap)
+	s.configureAccessZones(zoneTargetMap)
+	systemID, err = s.setSystemID(ctx, params, zoneTargetMap)
+	if err != nil {
+		return nil, err
 	}
 
 	s.logStatistics()
@@ -223,33 +237,37 @@ func (s *service) CreateVolume(
 
 	// Handle Zone topology, which happens when node is annotated with "Zone" label
 	if len(zoneTargetMap) != 0 && accessibility != nil && len(accessibility.GetPreferred()) > 0 {
-		var zoneName string
+		var zoneName ZoneName
 		segments := accessibility.GetPreferred()[0].GetSegments()
 		for key, value := range segments {
 			Log.Infof("accessibility preferred segment key %s value %s", key, value)
 			if strings.HasPrefix(key, "zone."+Name) {
-				zoneName = value
-				zoneTarget := zoneTargetMap[zoneName]
-				if zoneTarget == "" {
-					Log.Infof("no zone target for %s", zoneTarget)
+				zoneName = ZoneName(value)
+				zoneTargets, ok := zoneTargetMap[zoneName]
+				if !ok {
+					Log.Infof("no zone target for %s", zoneTargets)
 					continue
 				}
-				parts := strings.Split(zoneTarget, ".")
 
-				protectionDomain = parts[0]
-				if len(parts) >= 2 {
-					storagePool = parts[1]
-				} else {
-					storagePool = "defaulPool"
-				}
-				systemSegments["zone."+Name] = zoneName
-				volumeTopology = append(volumeTopology, &csi.Topology{
-					Segments: systemSegments,
-				})
-				Log.Infof("Preferred topology zone %s, systemID %s, protectionDomain %s, and storageClass %s", zoneName, systemID, protectionDomain, storagePool)
-				zoneTopology = true
-				if err := s.requireProbe(ctx, systemID); err != nil {
-					return nil, err
+				// get domain names and storage pools for each protection domain
+				for _, domain := range zoneTargets {
+					// TODO: update to handle multiple protection domains
+
+					protectionDomain = string(domain.Name)
+					if domain.Pool != "" {
+						storagePool = string(domain.Pool)
+					} else {
+						storagePool = "defaultPool"
+					}
+					systemSegments["zone."+Name] = string(zoneName)
+					volumeTopology = append(volumeTopology, &csi.Topology{
+						Segments: systemSegments,
+					})
+					Log.Infof("Preferred topology zone %s, systemID %s, protectionDomain %s, and storageClass %s", zoneName, systemID, protectionDomain, storagePool)
+					zoneTopology = true
+					if err := s.requireProbe(ctx, systemID); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
