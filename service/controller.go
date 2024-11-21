@@ -1847,7 +1847,7 @@ func (s *service) ListVolumes(
 		err        error
 		maxEntries = int(req.MaxEntries)
 	)
-
+	Log.Printf("maxEntries: %d\n", maxEntries)
 	if v := req.StartingToken; v != "" {
 		i, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
@@ -1874,7 +1874,8 @@ func (s *service) ListVolumes(
 		}
 		i = i + 1
 	}
-
+	Log.Printf("volume count............: %d\n", i)
+	Log.Printf("entries...........: %v\n", entries)
 	return &csi.ListVolumesResponse{
 		Entries:   entries,
 		NextToken: nextToken,
@@ -2078,8 +2079,12 @@ func (s *service) listVolumes(systemID string, startToken int, maxEntries int, d
 		}
 	}
 
+	Log.Printf("len(sioVols)............: %d\n", len(sioVols))
+	Log.Printf("len(sioSnaps)............: %d\n", len(sioSnaps))
+
 	// Make aggregate volumes slice containing both
 	volumes = make([]*siotypes.Volume, len(sioVols)+len(sioSnaps))
+	Log.Printf("listVolumes() volumes............: %v\n", volumes)
 	if len(sioVols) > 0 {
 		copy(volumes[0:], sioVols)
 	}
