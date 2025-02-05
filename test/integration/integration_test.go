@@ -18,7 +18,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"strings"
 	"testing"
@@ -183,22 +182,12 @@ func TestIntegration(t *testing.T) {
 		file.Close()
 	}
 
-	outputfile, err := os.Create("integration.xml")
-	defer outputfile.Close()
-
-	// Create a multi-writer to write to both stdout and the file
-	multiWriter := io.MultiWriter(os.Stdout, outputfile)
-
 	tags := os.Getenv("TEST_TAGS")
 
 	opts := godog.Options{
-		//Format: "junit",
-		//Output: outputfile,
-		Paths:  []string{"features"},
-		Tags:   tags,
-		Output: multiWriter,
-		Format: "pretty",
-		//Format:        "pretty,junit",
+		Paths:         []string{"features"},
+		Tags:          tags,
+		Format:        "pretty,junit:integration.xml",
 		StopOnFailure: true,
 	}
 
@@ -282,7 +271,7 @@ func startDriver(cFile string) error {
 		sp.GracefulStop(ctx)
 	}
 
-	fmt.Printf("Driver is initializing...")
+	fmt.Println("Driver is initializing...")
 	time.Sleep(10 * time.Second)
 
 	return nil
