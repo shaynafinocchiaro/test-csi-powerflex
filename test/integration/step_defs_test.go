@@ -488,7 +488,7 @@ func (f *feature) createVolume(req *csi.CreateVolumeRequest) (*csi.CreateVolumeR
 	return volResp, err
 }
 
-func (f *feature) iCallDeleteVolume() error {
+func (f *feature) whenICallDeleteVolume() error {
 	if f.createVolumeRequest == nil {
 		return nil
 	}
